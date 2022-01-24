@@ -172,7 +172,7 @@ func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, 
 	return &username, nil
 }
 
-func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string, expiratinoTime int32) error {
+func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string, expiratingTime int32) error {
 	// check user existence
 	userJSON, err := ctx.GetStub().GetState(username)
 	if err != nil {
@@ -195,7 +195,7 @@ func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, 
 	// add code to user state
 	newCode := Code{
 		Hash:           hashCode,
-		ExpirationTime: expiratinoTime,
+		ExpirationTime: expiratingTime,
 	}
 	user.Codes = append(user.Codes, &newCode)
 	userJSON, err = json.Marshal(user)
