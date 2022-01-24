@@ -14,7 +14,7 @@ type SmartContract struct {
 type User struct {
 	UserName       string  `json:"UserName"`
 	PwdHash        string  `json:"PwdHash"`
-	IsDeviceBinded bool    `json:IsDeviceBinded`
+	IsDeviceBinded bool    `json:"IsDeviceBinded"`
 	DevicePK       string  `json:"DevicePK"`
 	Codes          []*Code `json:"Codes"`
 }
@@ -24,6 +24,8 @@ type Code struct {
 	ExpirationTime int32  `json:"ExpirationTime"`
 }
 
+const pendingDevicesName string = "pendingDevices"
+
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
 	pendingDevices := map[string]string{}
 
@@ -32,7 +34,7 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 		return err
 	}
 
-	err = ctx.GetStub().PutState("pendingDevices", pendingDevicesJSON)
+	err = ctx.GetStub().PutState(pendingDevicesName, pendingDevicesJSON)
 	if err != nil {
 		return fmt.Errorf("Failed to initialize pending devices array")
 	}
@@ -50,8 +52,8 @@ func (s *SmartContract) CreateNewUser(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("User %s already registered", username)
 	}
 
-	// add device in the pending pool
-	pendingDevicesJSON, err := ctx.GetStub().GetState("pendingDevices")
+	// add device in pending state
+	pendingDevicesJSON, err := ctx.GetStub().GetState(pendingDevicesName)
 	if err != nil {
 		return err
 	}
@@ -61,12 +63,12 @@ func (s *SmartContract) CreateNewUser(ctx contractapi.TransactionContextInterfac
 	} else {
 		json.Unmarshal(pendingDevicesJSON, &pendingDevices)
 	}
-	pendingDevices[username] = deviceId
+	pendingDevices[deviceId] = username
 	pendingDevicesJSON, err = json.Marshal(pendingDevices)
 	if err != nil {
 		return err
 	}
-	err = ctx.GetStub.PutState("pendingDevices", pendingDevicesJSON)
+	err = ctx.GetStub().PutState(pendingDevicesName, pendingDevicesJSON)
 
 	// add user to world state
 	user := User{
@@ -82,7 +84,7 @@ func (s *SmartContract) CreateNewUser(ctx contractapi.TransactionContextInterfac
 		return err
 	}
 
-	err = ctx.GetStub.PutState(username, userJSON)
+	err = ctx.GetStub().PutState(username, userJSON)
 	if err != nil {
 		return fmt.Errorf("Failed update world state: %v", err)
 	}
@@ -91,12 +93,12 @@ func (s *SmartContract) CreateNewUser(ctx contractapi.TransactionContextInterfac
 }
 
 func (s *SmartContract) GetUser(ctx contractapi.TransactionContextInterface, username string) (*User, error) {
-	userJSON, err := ctx.GetStub.GetState(username)
+	userJSON, err := ctx.GetStub().GetState(username)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read from world state: %v", err)
 	}
 	if userJSON == nil {
-		return nil, fmt.Errorf("User %s does not exists")
+		return nil, fmt.Errorf("User %s does not exists", username)
 	}
 
 	var user User
@@ -108,17 +110,97 @@ func (s *SmartContract) GetUser(ctx contractapi.TransactionContextInterface, use
 	return &user, nil
 }
 
-func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface) error {
+func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, deviceId string, pk string) (*string, error) {
+	// check if device is in pending
+	pendingDevicesJSON, err := ctx.GetStub().GetState(pendingDevicesName)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read from world state: %v", err)
+	}
+	if pendingDevicesJSON == nil {
+		return nil, fmt.Errorf("Device %s isn't in pending devices", deviceId)
+	}
+	var pendingDevices map[string]string
+	err = json.Unmarshal(pendingDevicesJSON, &pendingDevices)
+	if err != nil {
+		return nil, err
+	}
+	username, ok := pendingDevices[deviceId]
+	if !ok {
+		return nil, fmt.Errorf("Device %s isn't in pending devices", deviceId)
+	}
 
-	return nil
+	// check if the user need to be binded
+	userJSON, err := ctx.GetStub().GetState(username)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read from world state: %v", err)
+	}
+	if userJSON == nil {
+		return nil, fmt.Errorf("User %s does not exists", username)
+	}
+	var user User
+	err = json.Unmarshal(userJSON, &user)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsDeviceBinded {
+		return nil, fmt.Errorf("User %s already binded to a device", username)
+	}
+
+	// update user state
+	user.IsDeviceBinded = true
+	user.DevicePK = pk
+	userJSON, err = json.Marshal(user)
+	if err != nil {
+		return nil, err
+	}
+	err = ctx.GetStub().PutState(username, userJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	// remove device from binding state
+	delete(pendingDevices, deviceId)
+	pendingDevicesJSON, err = json.Marshal(pendingDevices)
+	if err != nil {
+		return nil, err
+	}
+	err = ctx.GetStub().PutState(pendingDevicesName, pendingDevicesJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	return &username, nil
 }
 
-func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface) error {
+func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string, expiratinoTime int32) error {
+	// check user existence
+	userJSON, err := ctx.GetStub().GetState(username)
+	if err != nil {
+		return fmt.Errorf("Failed to read from world state: %v", err)
+	}
+	if userJSON == nil {
+		return fmt.Errorf("User %s does not exists", username)
+	}
+	var user User
+	if err = json.Unmarshal(userJSON, &user); err != nil {
+		return err
+	}
+	if !user.IsDeviceBinded {
+		return fmt.Errorf("Device is not binded to user %s", username)
+	}
 
-	return nil
-}
+	// check the code sign
+	// todo
 
-func (s *SmartContract) VerifyCode(ctx contractapi.TransactionContextInterface) error {
-
-	return nil
+	// add code to user state
+	newCode := Code{
+		Hash:           hashCode,
+		ExpirationTime: expiratinoTime,
+	}
+	user.Codes = append(user.Codes, &newCode)
+	userJSON, err = json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	return ctx.GetStub().PutState(username, userJSON)
 }
