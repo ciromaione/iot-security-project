@@ -1,8 +1,9 @@
-package chaincode
+package main
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -25,22 +26,6 @@ type Code struct {
 }
 
 const pendingDevicesName string = "pendingDevices"
-
-func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	pendingDevices := map[string]string{}
-
-	pendingDevicesJSON, err := json.Marshal(pendingDevices)
-	if err != nil {
-		return err
-	}
-
-	err = ctx.GetStub().PutState(pendingDevicesName, pendingDevicesJSON)
-	if err != nil {
-		return fmt.Errorf("Failed to initialize pending devices array")
-	}
-
-	return nil
-}
 
 func (s *SmartContract) CreateNewUser(ctx contractapi.TransactionContextInterface, username string, pwdHash string, deviceId string) error {
 	// check if the user already extists
@@ -110,40 +95,40 @@ func (s *SmartContract) GetUser(ctx contractapi.TransactionContextInterface, use
 	return &user, nil
 }
 
-func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, deviceId string, pk string) (*string, error) {
+func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, deviceId string, pk string) (string, error) {
 	// check if device is in pending
 	pendingDevicesJSON, err := ctx.GetStub().GetState(pendingDevicesName)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read from world state: %v", err)
+		return "", fmt.Errorf("Failed to read from world state: %v", err)
 	}
 	if pendingDevicesJSON == nil {
-		return nil, fmt.Errorf("Device %s isn't in pending devices", deviceId)
+		return "", fmt.Errorf("Device %s isn't in pending devices", deviceId)
 	}
 	var pendingDevices map[string]string
 	err = json.Unmarshal(pendingDevicesJSON, &pendingDevices)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	username, ok := pendingDevices[deviceId]
 	if !ok {
-		return nil, fmt.Errorf("Device %s isn't in pending devices", deviceId)
+		return "", fmt.Errorf("Device %s isn't in pending devices", deviceId)
 	}
 
 	// check if the user need to be binded
 	userJSON, err := ctx.GetStub().GetState(username)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read from world state: %v", err)
+		return "", fmt.Errorf("Failed to read from world state: %v", err)
 	}
 	if userJSON == nil {
-		return nil, fmt.Errorf("User %s does not exists", username)
+		return "", fmt.Errorf("User %s does not exists", username)
 	}
 	var user User
 	err = json.Unmarshal(userJSON, &user)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if user.IsDeviceBinded {
-		return nil, fmt.Errorf("User %s already binded to a device", username)
+		return "", fmt.Errorf("User %s already binded to a device", username)
 	}
 
 	// update user state
@@ -151,25 +136,25 @@ func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, 
 	user.DevicePK = pk
 	userJSON, err = json.Marshal(user)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	err = ctx.GetStub().PutState(username, userJSON)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// remove device from binding state
 	delete(pendingDevices, deviceId)
 	pendingDevicesJSON, err = json.Marshal(pendingDevices)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	err = ctx.GetStub().PutState(pendingDevicesName, pendingDevicesJSON)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &username, nil
+	return username, nil
 }
 
 func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string, expiratingTime int32) error {
@@ -203,4 +188,15 @@ func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, 
 		return err
 	}
 	return ctx.GetStub().PutState(username, userJSON)
+}
+
+func main() {
+	authChaincode, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		log.Panicf("Error creating auth-protocol chaincode: %v", err)
+	}
+
+	if err := authChaincode.Start(); err != nil {
+		log.Panicf("Error starting auth-protocol chaincode: %v", err)
+	}
 }
