@@ -7,7 +7,7 @@ import { TextDecoder } from 'util'
 import { User } from './types';
 
 const channelName = 'mychannel'
-const chaincodeName = 'authProtocol2'
+const chaincodeName = 'authProtocol'
 const mspId = 'Org1MSP'
 
 const cryptoPath = '/home/ciro/go/src/github.com/ciromaione/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com'
