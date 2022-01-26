@@ -2,7 +2,7 @@ import express from 'express'
 import * as gateway from './contract-gateway'
 
 const app = express()
-const port = 3000
+const port = 3030
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
