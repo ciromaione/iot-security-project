@@ -13,11 +13,11 @@ type SmartContract struct {
 }
 
 type User struct {
-	UserName       string  `json:"UserName"`
-	PwdHash        string  `json:"PwdHash"`
-	IsDeviceBinded bool    `json:"IsDeviceBinded"`
-	DevicePK       string  `json:"DevicePK"`
-	Codes          []*Code `json:"Codes"`
+	UserName      string  `json:"UserName"`
+	PwdHash       string  `json:"PwdHash"`
+	IsDeviceBound bool    `json:"IsDeviceBound"`
+	DevicePK      string  `json:"DevicePK"`
+	Codes         []*Code `json:"Codes"`
 }
 
 type Code struct {
@@ -57,11 +57,11 @@ func (s *SmartContract) CreateNewUser(ctx contractapi.TransactionContextInterfac
 
 	// add user to world state
 	user := User{
-		UserName:       username,
-		PwdHash:        pwdHash[:],
-		IsDeviceBinded: false,
-		DevicePK:       "",
-		Codes:          []*Code{},
+		UserName:      username,
+		PwdHash:       pwdHash[:],
+		IsDeviceBound: false,
+		DevicePK:      "",
+		Codes:         []*Code{},
 	}
 
 	userJSON, err = json.Marshal(user)
@@ -114,7 +114,7 @@ func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, 
 		return "", fmt.Errorf("Device %s isn't in pending devices", deviceId)
 	}
 
-	// check if the user need to be binded
+	// check if the user need to be bound
 	userJSON, err := ctx.GetStub().GetState(username)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read from world state: %v", err)
@@ -127,12 +127,12 @@ func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, 
 	if err != nil {
 		return "", err
 	}
-	if user.IsDeviceBinded {
-		return "", fmt.Errorf("User %s already binded to a device", username)
+	if user.IsDeviceBound {
+		return "", fmt.Errorf("User %s already bound to a device", username)
 	}
 
 	// update user state
-	user.IsDeviceBinded = true
+	user.IsDeviceBound = true
 	user.DevicePK = pk
 	userJSON, err = json.Marshal(user)
 	if err != nil {
@@ -170,8 +170,8 @@ func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, 
 	if err = json.Unmarshal(userJSON, &user); err != nil {
 		return err
 	}
-	if !user.IsDeviceBinded {
-		return fmt.Errorf("Device is not binded to user %s", username)
+	if !user.IsDeviceBound {
+		return fmt.Errorf("Device is not bound to user %s", username)
 	}
 
 	// check the code sign
