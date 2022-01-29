@@ -62,8 +62,8 @@ void loop() {
 void bind_device() {
   Ed25519::generatePrivateKey(private_key);
   Ed25519::derivePublicKey (public_key, private_key);
-  bluetooth.write(private_key);
-  bluetooth.write(DEVICE_ID);
+  bluetooth.println(DEVICE_ID);
+  send_bytes(public_key, 32);
   username = bluetooth.readString();
 }
 
@@ -86,6 +86,13 @@ void generate_code() {
 
   Ed25519::sign(signature, private_key, public_key, code_hash, sizeof(code_hash));
 
-  bluetooth.write(code_hash);
-  bluetooth.write(signature);
+  bluetooth.println(username);
+  send_bytes(code_hash, HASH_SIZE);
+  send_bytes(csignature, 64);
+}
+
+void send_bytes(uint8_t *buffer, int len) {
+  for(int i = 0; i < len; ++i) {
+    bluetooth.write(buffer[i]);
+  }
 }
