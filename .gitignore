@@ -1,3 +1,5 @@
 smartcontract/authProtocol/vendor
 rest-proxy/node_modules
 rest-proxy/dist
+bluetooth-server/.idea
+bluetooth-server/venv
