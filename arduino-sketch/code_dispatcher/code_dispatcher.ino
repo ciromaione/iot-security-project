@@ -4,9 +4,8 @@
 #include <Hash.h>
 #include <Ed25519.h>
 #include <SHA256.h>
-#include <RNG.h>
 
-#define DEVICE_ID "00000001"
+#define DEVICE_ID "00001"
 #define BT_TX 3
 #define BT_RX 2
 #define LCD_RS 7
@@ -16,6 +15,7 @@
 #define LCD_D6 11
 #define LCD_D7 12
 #define HASH_SIZE 32
+#define BTN_PIN 5
 
 // init bluetooth module
 SoftwareSerial bluetooth(BT_RX, BT_TX); 
@@ -32,12 +32,15 @@ uint8_t public_key[32];
 SHA256 sha256;
 Hash *hash = &sha256;
 
-// username
-String username;
+// is device been already bound
+bool is_bound;
 
 void setup() {
   // setup serial log
   Serial.begin(9600);
+
+  // setup btn
+  pinMode(BTN_PIN, INPUT_PULLUP);
   
   // setup bluetooth
   bluetooth.begin(9600);
@@ -45,54 +48,86 @@ void setup() {
   // setup lcd
   lcd.begin(16, 2);
 
-  // setup random number generator
-  RNG.begin("Ciro's code dispatcher");
-}
+  lcd.print("ID: ");
+  lcd.print(DEVICE_ID);
 
-void loop() {
-  RNG.loop();
-  // put your main code here, to run repeatedly:
-  // lcd.setCursor(0, 1);
-  // print the number of seconds since reset:
+  is_bound = false;
 
-  // bluetooth.println("hello world");
-  // lcd.print(millis() / 1000);
+  randomSeed(analogRead(0));
 }
 
 void bind_device() {
   Ed25519::generatePrivateKey(private_key);
   Ed25519::derivePublicKey (public_key, private_key);
+  Serial.print("public key: ");
+  Serial.println((char*) public_key);
   bluetooth.println(DEVICE_ID);
+  delay(100);
   send_bytes(public_key, 32);
-  username = bluetooth.readString();
 }
 
 void generate_code() {
-  uint8_t code[8];
+  String code;
+  char code_array[6];
   uint8_t code_hash[HASH_SIZE];
   uint8_t signature[64];
 
-  while(true) {
-    if(RNG.available(sizeof(code))) {
-      RNG.rand(code, sizeof(code);
-      break;
-    }
-    Serial.println("Accumulating entropy for RNG..");
-    RNG.loop();
-  }
+  code = gen_rand_alphanueric_code();
+  code.toCharArray(code_array, 6);
+  Serial.print("Code: ");
+  Serial.println(code);
+  
   hash->reset();
-  hash->update(code, strlen(code));
+  hash->update(code_array, strlen(code_array));
   hash->finalize(code_hash, sizeof(code_hash));
+
+  Serial.print("Hash: ");
+  for(int i=0; i<32; ++i) {
+    Serial.print(code_hash[i], HEX);
+  }
+  Serial.println("*");
 
   Ed25519::sign(signature, private_key, public_key, code_hash, sizeof(code_hash));
 
-  bluetooth.println(username);
   send_bytes(code_hash, HASH_SIZE);
-  send_bytes(csignature, 64);
+  send_bytes(signature, 64);
+  lcd.setCursor(0, 1);
+  lcd.print("CODE: ");
+  lcd.print(code + "     ");
 }
 
 void send_bytes(uint8_t *buffer, int len) {
   for(int i = 0; i < len; ++i) {
     bluetooth.write(buffer[i]);
+  }
+}
+
+String gen_rand_alphanueric_code() {
+  String code = "";
+  for(int i = 0; i < 5; ++i) {
+    byte randomValue = random(0, 36);
+    char letter = randomValue + 'a';
+    if(randomValue >= 26)
+      letter = (randomValue - 26) + '0';
+    code += letter;
+  }
+  return code;
+}
+
+void loop() {
+  if(digitalRead(BTN_PIN) == LOW) {
+    if(!is_bound) {
+      lcd.setCursor(0, 1);
+      lcd.print("Start binding..");
+      bind_device();
+      lcd.setCursor(0, 1);
+      lcd.print("Binding done!  ");
+      is_bound = true;
+    } else {
+      lcd.setCursor(0, 1);
+      lcd.print("Start code gen..");
+      generate_code();
+    }
+    delay(1000);
   }
 }

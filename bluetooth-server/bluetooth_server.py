@@ -11,9 +11,11 @@ base_path = 'localhost:3030/api'
 bind_path = base_path + '/bind-device'
 new_code_path = base_path + '/add-new-code'
 
+username = ''
+
 
 def bind_device(bt):
-    dev_id_bytes = bt.readln()
+    dev_id_bytes = bt.readline()
     pub_k_bytes = bt.read(32)
     dev_id = dev_id_bytes.decode()
     pub_k = pub_k_bytes.hex()
@@ -25,20 +27,18 @@ def bind_device(bt):
     if res.status_code == 200:
         print('Successfully bound device')
         data = res.json()
-        bt.write(str(data['username']).encode())
+        global username
+        username = str(data['username'])
     else:
         print('Error during binding device')
 
 
 def create_code(bt):
-    username_bytes = bt.readline()
     hash_bytes = bt.read(32)
     sign_bytes = bt.read(64)
-    username = username_bytes.decode()
     hash_code = hash_bytes.hex()
     sign = sign_bytes.hex()
 
-    print('Username:', username)
     print('Hash code:', hash_code)
     print('Sign:', sign)
 
