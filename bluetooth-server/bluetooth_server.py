@@ -7,7 +7,7 @@ bt_port = '/dev/rfcomm0'
 baud_rate = 9600
 
 # http parameters
-base_path = 'localhost:3030/api'
+base_path = 'http://localhost:3030/api'
 bind_path = base_path + '/bind-device'
 new_code_path = base_path + '/add-new-code'
 
@@ -17,7 +17,7 @@ username = ''
 def bind_device(bt):
     dev_id_bytes = bt.readline()
     pub_k_bytes = bt.read(32)
-    dev_id = dev_id_bytes.decode()
+    dev_id = dev_id_bytes.decode().strip()
     pub_k = pub_k_bytes.hex()
 
     print('Device id:', dev_id)
