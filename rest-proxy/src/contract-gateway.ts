@@ -98,10 +98,10 @@ async function bindDevice(deviceId: string, pk: string): Promise<string> {
     return result
 }
 
-async function addCode(username: string, hashCode: string, sign: string, expirationTime: string): Promise<void> {
+async function addCode(username: string, hashCode: string, sign: string): Promise<void> {
     const contract = await getContract()
     console.log('Submit Transaction: AddNewCode')
-    await contract?.submitTransaction('AddNewCode', username, hashCode, sign, expirationTime)
+    await contract?.submitTransaction('AddNewCode', username, hashCode, sign)
     console.log('*** Transaction committed successfully')
 }
 

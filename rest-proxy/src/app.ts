@@ -50,9 +50,9 @@ app.post('/api/bind-device', (req, res) => {
 })
 
 app.post('/api/add-new-code', (req, res) => {
-    const { username, hashCode, sign, expirationTime } = req.body
+    const { username, hashCode, sign } = req.body
 
-    gateway.addCode(username, hashCode, sign, expirationTime)
+    gateway.addCode(username, hashCode, sign)
         .then(() => {
             res.status(200).send('Code added!')
         })

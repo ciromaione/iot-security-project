@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -22,7 +25,7 @@ type User struct {
 
 type Code struct {
 	Hash           string `json:"Hash"`
-	ExpirationTime int32  `json:"ExpirationTime"`
+	ExpirationTime int64  `json:"ExpirationTime"`
 }
 
 const pendingDevicesName string = "pendingDevices"
@@ -157,7 +160,7 @@ func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, 
 	return username, nil
 }
 
-func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string, expiratingTime int32) error {
+func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string) error {
 	// check user existence
 	userJSON, err := ctx.GetStub().GetState(username)
 	if err != nil {
@@ -175,12 +178,26 @@ func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, 
 	}
 
 	// check the code sign
-	// todo
+	privateKey, err := hex.DecodeString(user.DevicePK)
+	if err != nil {
+		return err
+	}
+	hcBytes, err := hex.DecodeString(hashCode)
+	if err != nil {
+		return err
+	}
+	signBytes, err := hex.DecodeString(sign)
+	if err != nil {
+		return err
+	}
+	if !ed25519.Verify(privateKey, hcBytes, signBytes) {
+		return fmt.Errorf("The code doesn't have a valid sign")
+	}
 
 	// add code to user state
 	newCode := Code{
 		Hash:           hashCode,
-		ExpirationTime: expiratingTime,
+		ExpirationTime: time.Now().UnixMilli() + 5*time.Minute.Milliseconds(),
 	}
 	user.Codes = append(user.Codes, &newCode)
 	userJSON, err = json.Marshal(user)
