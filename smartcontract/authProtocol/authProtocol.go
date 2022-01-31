@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
+	"strconv"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -160,7 +160,7 @@ func (s *SmartContract) BindDevice(ctx contractapi.TransactionContextInterface, 
 	return username, nil
 }
 
-func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string) error {
+func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, username string, hashCode string, sign string, expirationTime string) error {
 	// check user existence
 	userJSON, err := ctx.GetStub().GetState(username)
 	if err != nil {
@@ -194,10 +194,15 @@ func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, 
 		return fmt.Errorf("The code doesn't have a valid sign")
 	}
 
+	et, err := strconv.ParseInt(expirationTime, 10, 64)
+	if err != nil {
+		return fmt.Errorf("Invalid expiration time %s", expirationTime)
+	}
+
 	// add code to user state
 	newCode := Code{
 		Hash:           hashCode,
-		ExpirationTime: time.Now().UnixMilli() + 5*time.Minute.Milliseconds(),
+		ExpirationTime: et,
 	}
 	user.Codes = append(user.Codes, &newCode)
 	userJSON, err = json.Marshal(user)

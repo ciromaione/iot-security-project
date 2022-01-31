@@ -15,6 +15,7 @@ app.post('/api/create-user', (req, res) => {
             res.status(200).send('User created!')
         })
         .catch(e => {
+            console.log(e)
             res.status(500).json({ error: 'Server error', reason: e })
         })
 })
@@ -30,6 +31,7 @@ app.get('/api/get-user/:username', (req, res) => {
             res.json(user)
         })
         .catch(e => {
+            console.log(e)
             res.status(500).json({ error: 'Server error', reason: e })
         })
 })
@@ -45,6 +47,7 @@ app.post('/api/bind-device', (req, res) => {
             res.json({ username })
         })
         .catch(e => {
+            console.log(e)
             res.status(500).json({ error: 'Server error', reason: e })
         })
 })
@@ -57,6 +60,7 @@ app.post('/api/add-new-code', (req, res) => {
             res.status(200).send('Code added!')
         })
         .catch(e => {
+            console.log(e)
             res.status(500).json({ error: 'Server error', reason: e })
         })
 })

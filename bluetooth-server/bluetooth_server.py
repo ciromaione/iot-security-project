@@ -31,6 +31,7 @@ def bind_device(bt):
         username = str(data['username'])
     else:
         print('Error during binding device')
+        print(res.reason)
 
 
 def create_code(bt):
@@ -47,6 +48,7 @@ def create_code(bt):
         print('Successfully added code')
     else:
         print('Error during creating new code')
+        print(res.reason)
 
 
 if __name__ == '__main__':
