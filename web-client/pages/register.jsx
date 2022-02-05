@@ -64,7 +64,7 @@ const Register = () => {
           <input name="deviceId" type="text" className="form-control" />
           <div className="center-div">
             <button className="btn btn-primary" type="submit">
-              Conferma
+              Confirm
             </button>
           </div>
         </form>

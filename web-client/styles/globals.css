@@ -17,14 +17,14 @@ a {
 
 .container {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   padding: 50px;
   display: grid;
   place-items: center;
 }
 
 .component {
-  width: 400px;
+  width: 500px;
   min-height: 500px;
   border-radius: 30px;
   padding: 25px;
@@ -42,4 +42,12 @@ a {
   display: grid;
   place-items: center;
   padding: 5px;
+}
+
+.form-transaction {
+  display: flex;
+}
+
+.form-transaction input {
+  margin-right: 4px;
 }

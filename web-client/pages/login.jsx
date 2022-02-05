@@ -52,7 +52,7 @@ const Login = () => {
           <input name="password" type="password" className="form-control" />
           <div className="center-div">
             <button className="btn btn-primary" type="submit">
-              Conferma
+              Confirm
             </button>
           </div>
         </form>
