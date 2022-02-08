@@ -1,8 +1,6 @@
-export interface User {
-    UserName: string
-	PwdHash: string
-	IsDeviceBinded: boolean
-	DevicePK: string
+export interface Device {
+    Id: string
+	PubK: string
 	Codes: [Code]
 }
 

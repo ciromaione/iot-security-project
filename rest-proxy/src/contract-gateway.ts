@@ -1,10 +1,10 @@
 import * as grpc from '@grpc/grpc-js'
-import { connect, Contract, Gateway, Identity, Signer, signers } from '@hyperledger/fabric-gateway'
+import { connect, Contract, Identity, Signer, signers } from '@hyperledger/fabric-gateway'
 import * as crypto from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { TextDecoder } from 'util'
-import { User } from './types';
+import { Device } from './types';
 
 const channelName = 'mychannel'
 const chaincodeName = 'authProtocol'
@@ -72,38 +72,36 @@ async function newSigner(): Promise<Signer> {
     return signers.newPrivateKeySigner(privateKey)
 }
 
-async function getUser(username: string): Promise<User> {
+async function getDevice(devId: string): Promise<Device> {
     const contract = await getContract()
-    console.log('Evaluate Transaction: GetUser')
-    const resultBytes = await contract?.evaluateTransaction('GetUser', username)
+    console.log('Evaluate Transaction: GetDevice')
+    const resultBytes = await contract?.evaluateTransaction('GetDevice', devId)
     const resultJson = utf8Decoder.decode(resultBytes)
     const result = JSON.parse(resultJson)
     console.log('*** Result:', result)
     return result
 }
 
-async function createUser(username: string, pwdHash: string, deviceId: string): Promise<void> {
+async function requestBinding(deviceId: string, comValue: string): Promise<void> {
     const contract = await getContract()
-    console.log('Submit Transaction: CreateNewUser')
-    await contract?.submitTransaction('CreateNewUser', username, pwdHash, deviceId)
+    console.log('Submit Transaction: RequestBinding')
+    await contract?.submitTransaction('RequestBinding', deviceId, comValue)
     console.log('*** Transaction committed successfully')
 }
 
-async function bindDevice(deviceId: string, pk: string): Promise<string> {
+async function finalizeBinding(deviceId: string, nonce: string, pk: string): Promise<void> {
     const contract = await getContract()
-    console.log('Submit Transaction: BindDevice')
-    const resultBytes = await contract?.submitTransaction('BindDevice', deviceId, pk)
-    const result = utf8Decoder.decode(resultBytes)
-    console.log('*** Result:', result)
-    return result
+    console.log('Submit Transaction: FinalizeBinding')
+    await contract?.submitTransaction('FinalizeBinding', deviceId, nonce, pk)
+    console.log('*** Transaction committed successfully')
 }
 
-async function addCode(username: string, hashCode: string, sign: string): Promise<void> {
+async function addCode(deviceId: string, hashCode: string, sign: string): Promise<void> {
     const contract = await getContract()
     const expirationTime = Date.now() + 5 * 60000 // 5 min from now
     console.log('Submit Transaction: AddNewCode')
-    await contract?.submitTransaction('AddNewCode', username, hashCode, sign, expirationTime.toString())
+    await contract?.submitTransaction('AddNewCode', deviceId, hashCode, sign, expirationTime.toString())
     console.log('*** Transaction committed successfully')
 }
 
-export { getUser, createUser, bindDevice, addCode }
+export { getDevice, requestBinding, finalizeBinding, addCode }

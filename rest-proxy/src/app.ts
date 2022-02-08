@@ -7,12 +7,12 @@ const port = 3030
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.post('/api/create-user', (req, res) => {
-    const { username, pwdHash, deviceId } = req.body
+app.post('/api/request-binding', (req, res) => {
+    const { deviceId, comValue } = req.body
 
-    gateway.createUser(username, pwdHash, deviceId)
+    gateway.requestBinding(deviceId, comValue)
         .then(() => {
-            res.status(200).send('User created!')
+            res.status(200).send('Device binding requested!')
         })
         .catch(e => {
             console.log(e)
@@ -20,15 +20,15 @@ app.post('/api/create-user', (req, res) => {
         })
 })
 
-app.get('/api/get-user/:username', (req, res) => {
-    const username = req.params.username
+app.get('/api/get-device/:devId', (req, res) => {
+    const devId = req.params.devId
 
-    gateway.getUser(username)
-        .then(user => {
-            if (!user) {
-                res.status(404).json({ error: 'User does not exists' })
+    gateway.getDevice(devId)
+        .then(device => {
+            if (!device) {
+                res.status(404).json({ error: 'Device does not exists' })
             }
-            res.json(user)
+            res.json(device)
         })
         .catch(e => {
             console.log(e)
@@ -36,15 +36,12 @@ app.get('/api/get-user/:username', (req, res) => {
         })
 })
 
-app.post('/api/bind-device', (req, res) => {
-    const { deviceId, pk } = req.body
+app.post('/api/finalize-binding', (req, res) => {
+    const { deviceId, nonce, pk } = req.body
 
-    gateway.bindDevice(deviceId, pk)
-        .then(username => {
-            if (!username) {
-                res.status(404).json({ error: 'Impossible binding' })
-            }
-            res.json({ username })
+    gateway.finalizeBinding(deviceId, nonce, pk)
+        .then(() => {
+            res.status(200).send('Device binding finalized!')
         })
         .catch(e => {
             console.log(e)
@@ -53,9 +50,9 @@ app.post('/api/bind-device', (req, res) => {
 })
 
 app.post('/api/add-new-code', (req, res) => {
-    const { username, hashCode, sign } = req.body
+    const { devId, hashCode, sign } = req.body
 
-    gateway.addCode(username, hashCode, sign)
+    gateway.addCode(devId, hashCode, sign)
         .then(() => {
             res.status(200).send('Code added!')
         })
