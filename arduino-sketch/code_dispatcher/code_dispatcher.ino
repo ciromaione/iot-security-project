@@ -35,6 +35,9 @@ Hash *hash = &sha256;
 // is device been already bound
 bool is_bound;
 
+// nonce
+String nonce;
+
 void setup() {
   // setup serial log
   Serial.begin(9600);
@@ -54,6 +57,11 @@ void setup() {
   is_bound = false;
 
   randomSeed(analogRead(0));
+
+  nonce = gen_rand_alphanueric_code(8);
+  lcd.setCursor(0, 1);
+  lcd.print("Nonce: ");
+  lcd.print(nonce);
 }
 
 void bind_device() {
@@ -62,6 +70,8 @@ void bind_device() {
   Serial.print("public key: ");
   Serial.println((char*) public_key);
   bluetooth.println(DEVICE_ID);
+  delay(100);
+  bluetooth.println(nonce);
   delay(100);
   send_bytes(public_key, 32);
 }
@@ -72,7 +82,7 @@ void generate_code() {
   uint8_t code_hash[HASH_SIZE];
   uint8_t signature[64];
 
-  code = gen_rand_alphanueric_code();
+  code = gen_rand_alphanueric_code(5);
   code.toCharArray(code_array, 6);
   Serial.print("Code: ");
   Serial.println(code);
@@ -89,6 +99,8 @@ void generate_code() {
 
   Ed25519::sign(signature, private_key, public_key, code_hash, sizeof(code_hash));
 
+  bluetooth.println(DEVICE_ID);
+  delay(100);
   send_bytes(code_hash, HASH_SIZE);
   send_bytes(signature, 64);
   lcd.setCursor(0, 1);
@@ -102,9 +114,9 @@ void send_bytes(uint8_t *buffer, int len) {
   }
 }
 
-String gen_rand_alphanueric_code() {
+String gen_rand_alphanueric_code(int n) {
   String code = "";
-  for(int i = 0; i < 5; ++i) {
+  for(int i = 0; i < n; ++i) {
     byte randomValue = random(0, 36);
     char letter = randomValue + 'a';
     if(randomValue >= 26)

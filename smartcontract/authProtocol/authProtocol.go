@@ -22,14 +22,6 @@ type Device struct {
 	Codes []*Code `json:"Codes"`
 }
 
-type User struct {
-	UserName      string  `json:"UserName"`
-	PwdHash       string  `json:"PwdHash"`
-	IsDeviceBound bool    `json:"IsDeviceBound"`
-	DevicePK      string  `json:"DevicePK"`
-	Codes         []*Code `json:"Codes"`
-}
-
 type Code struct {
 	Hash           string `json:"Hash"`
 	ExpirationTime int64  `json:"ExpirationTime"`
@@ -130,7 +122,7 @@ func (s *SmartContract) GetDevice(ctx contractapi.TransactionContextInterface, d
 		return nil, fmt.Errorf("Failed to read from world state: %v", err)
 	}
 	if deviceJSON == nil {
-		return nil, fmt.Errorf("User %s does not exists", deviceId)
+		return nil, fmt.Errorf("Device %s does not exists", deviceId)
 	}
 
 	var device Device
@@ -177,7 +169,7 @@ func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, 
 		return fmt.Errorf("Invalid expiration time %s", expirationTime)
 	}
 
-	// add code to user state
+	// add code to device state
 	newCode := Code{
 		Hash:           hashCode,
 		ExpirationTime: et,

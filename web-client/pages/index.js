@@ -1,20 +1,18 @@
 import Head from 'next/head'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import styles from '../styles/Home.module.css'
 import { sha256 } from '../utils/hashing'
 
-const basePath = 'localhost:3030/api/'
+const basePath = 'http://localhost:3030/api'
 
 export default function Home() {
-  const [transactions, setTransactions] = useState([{ key: 1, valid: true, text: 'prova' }])
+  const [transactions, setTransactions] = useState([])
 
   async function handleRequestBinding(event) {
-    event.preventDefault();
+    event.preventDefault()
 
     const form = new FormData(event.target)
     const { deviceId, nonce } = Object.fromEntries(form.entries())
-
-    console.log(formData)
 
     try {
       const comValue = await sha256(deviceId + nonce)
@@ -28,7 +26,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        method: 'POST',
+        method: 'POST'
       })
     } catch (error) {
       console.log(error)
@@ -36,7 +34,41 @@ export default function Home() {
     }
   }
 
-  async function handleValidateTransaction() {}
+  async function handleValidateTransaction(event) {
+    event.preventDefault()
+
+    const form = new FormData(event.target)
+    const { otcode } = Object.fromEntries(form.entries())
+
+    try {
+      const res = await fetch(`${basePath}/get-device/00001`)
+      const resJson = await res.json()
+
+      const codeHash = await sha256(otcode)
+      const devCode = resJson.Codes.find(code => code.Hash === codeHash)
+
+      const time = Date.now()
+      const timeString = new Date(time).toLocaleTimeString()
+      const transactionEntry = { key: time }
+      if (devCode) {
+        if (time <= parseInt(devCode.ExpirationTime)) {
+          transactionEntry.valid = true
+          transactionEntry.text = `Valid transaction at ${timeString}`
+        } else {
+          transactionEntry.valid = false
+          transactionEntry.text = `Invalid transaction with code ${otcode} at ${timeString}, Code Expired`
+        }
+      } else {
+        transactionEntry.valid = false
+        transactionEntry.text = `Invalid transaction with code ${otcode} at ${timeString}, Invalid Code`
+      }
+
+      setTransactions(prev => [transactionEntry, ...prev])
+    } catch (error) {
+      console.log(error)
+      alert(error)
+    }
+  }
 
   return (
     <div className={styles.container}>
