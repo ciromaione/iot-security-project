@@ -29,6 +29,10 @@ type Code struct {
 
 const pendingDevicesName string = "pendingDevices"
 
+/*
+** This transaction inserts the device id and the com value in the
+** list of devices in pending state
+ */
 func (s *SmartContract) RequestBinding(ctx contractapi.TransactionContextInterface, deviceId string, com string) error {
 	// check if devices is already bound
 	deviceJSON, err := ctx.GetStub().GetState(deviceId)
@@ -63,6 +67,12 @@ func (s *SmartContract) RequestBinding(ctx contractapi.TransactionContextInterfa
 	return ctx.GetStub().PutState(pendingDevicesName, pendingDevicesJSON)
 }
 
+/*
+** This transaction checks if the device id passed is in pending state (in the pending list)
+** and check if nonce is valid (if the sha256 sum of device id concatenated with nonce is equal
+** to the com value provided by the user during the RequestBinding transaction)
+** If the nonce is vali then a Device struct is created and the device public key is inserted
+ */
 func (s *SmartContract) FinalizeBinding(ctx contractapi.TransactionContextInterface, deviceId string, nonce string, pk string) error {
 	// check if device is already registered
 	deviceJSON, err := ctx.GetStub().GetState(deviceId)
@@ -116,6 +126,9 @@ func (s *SmartContract) FinalizeBinding(ctx contractapi.TransactionContextInterf
 	return nil
 }
 
+/*
+** This transaction return the Device data structure if it is in the global state
+ */
 func (s *SmartContract) GetDevice(ctx contractapi.TransactionContextInterface, deviceId string) (*Device, error) {
 	deviceJSON, err := ctx.GetStub().GetState(deviceId)
 	if err != nil {
@@ -133,6 +146,10 @@ func (s *SmartContract) GetDevice(ctx contractapi.TransactionContextInterface, d
 	return &device, nil
 }
 
+/*
+** This transaction check if the passed code hash is been emitted by the device verifyng the signature with
+** the his public key and after that it adds the new one time secret to the list of codes of the device
+ */
 func (s *SmartContract) AddNewCode(ctx contractapi.TransactionContextInterface, deviceId string, hashCode string, sign string, expirationTime string) error {
 	// check device existence
 	deviceJSON, err := ctx.GetStub().GetState(deviceId)
