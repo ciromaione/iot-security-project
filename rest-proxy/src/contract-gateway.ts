@@ -25,7 +25,7 @@ async function getContract(): Promise<Contract | null> {
     return contract
 }
 
-async function createContract(): Promise<void> {
+async function createContract() {
     const client = await newGrpcConnection()
 
     const gateway = connect({
@@ -74,7 +74,7 @@ async function newSigner(): Promise<Signer> {
 
 async function getDevice(devId: string): Promise<Device> {
     const contract = await getContract()
-    console.log('Evaluate Transaction: GetDevice')
+    console.log('GetDevice')
     const resultBytes = await contract?.evaluateTransaction('GetDevice', devId)
     const resultJson = utf8Decoder.decode(resultBytes)
     const result = JSON.parse(resultJson)
@@ -82,26 +82,26 @@ async function getDevice(devId: string): Promise<Device> {
     return result
 }
 
-async function requestBinding(deviceId: string, comValue: string): Promise<void> {
+async function requestBinding(deviceId: string, comValue: string) {
     const contract = await getContract()
-    console.log('Submit Transaction: RequestBinding')
+    console.log('RequestBinding')
     await contract?.submitTransaction('RequestBinding', deviceId, comValue)
-    console.log('*** Transaction committed successfully')
+    console.log('*** Success')
 }
 
-async function finalizeBinding(deviceId: string, nonce: string, pk: string): Promise<void> {
+async function finalizeBinding(deviceId: string, nonce: string, pk: string) {
     const contract = await getContract()
-    console.log('Submit Transaction: FinalizeBinding')
+    console.log('FinalizeBinding')
     await contract?.submitTransaction('FinalizeBinding', deviceId, nonce, pk)
-    console.log('*** Transaction committed successfully')
+    console.log('*** Success')
 }
 
-async function addCode(deviceId: string, hashCode: string, sign: string): Promise<void> {
+async function addCode(deviceId: string, hashCode: string, sign: string) {
     const contract = await getContract()
     const expirationTime = Date.now() + 5 * 60000 // 5 min from now
-    console.log('Submit Transaction: AddNewCode')
+    console.log('AddNewCode')
     await contract?.submitTransaction('AddNewCode', deviceId, hashCode, sign, expirationTime.toString())
-    console.log('*** Transaction committed successfully')
+    console.log('*** Success')
 }
 
 export { getDevice, requestBinding, finalizeBinding, addCode }

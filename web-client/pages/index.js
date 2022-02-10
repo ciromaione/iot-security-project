@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import styles from '../styles/Home.module.css'
 import { sha256 } from '../utils/hashing'
 

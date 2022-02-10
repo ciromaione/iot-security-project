@@ -11,9 +11,7 @@ app.use(express.urlencoded({ extended: true }))
 
 app.post('/api/request-binding', (req, res) => {
     const { deviceId, comValue } = req.body
-    console.log("dev id", deviceId)
-    console.log("comVal", comValue)
-
+    
     gateway.requestBinding(deviceId, comValue)
         .then(() => res.status(200).send('ok!'))
         .catch(e => {
