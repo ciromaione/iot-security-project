@@ -28,6 +28,7 @@ export default function Home() {
         },
         method: 'POST'
       })
+      alert("OK")
     } catch (error) {
       console.log(error)
       alert(error)
